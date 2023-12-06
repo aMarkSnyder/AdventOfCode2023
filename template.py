@@ -14,5 +14,5 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument('input_file', nargs='?', default='input.txt')
     args = parser.parse_args()
-    data = read_input(args.input)
+    data = read_input(args.input_file)
     main(data)
