@@ -1,10 +1,14 @@
 from argparse import ArgumentParser
 from math import prod
+import re
+
+def all_ints(s):
+    return [int(i) for i in re.findall(r'\b\d+\b', s)]
 
 def main(data):
     # Star 1
-    times = [int(time) for time in data[0].split(':')[1].split()]
-    distances = [int(dist) for dist in data[1].split(':')[1].split()]
+    times = all_ints(data[0])
+    distances = all_ints(data[1])
 
     ways_to_win = []
     for total_time, record in zip(times,distances):
@@ -15,8 +19,8 @@ def main(data):
     print(prod(ways_to_win))
 
     # Star 2
-    total_time = int(data[0].split(':')[1].replace(' ', ''))
-    record_dist = int(data[1].split(':')[1].replace(' ', ''))
+    total_time = int(''.join(str(time) for time in times))
+    record_dist = int(''.join(str(dist) for dist in distances))
 
     ways_to_win = 0
     for time in range(total_time):
