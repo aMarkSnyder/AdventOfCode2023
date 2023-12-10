@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 import numpy as np
+np.set_printoptions(linewidth=200)
 
 class PipeMaze():
     def __init__(self, maze) -> None:
@@ -74,11 +75,12 @@ def main(data):
 
     start = np.where(maze.maze == 'S')
     start = (start[0][0], start[1][0])
+    maze.maze[start] = maze.resolve_s(start)
 
     path = [start]
     old = start
     curr = maze.valid_neighbors(old)[0]
-    while maze.maze[curr] != 'S':
+    while curr != start:
         path.append(curr)
         neighbors = maze.valid_neighbors(curr)
         for neighbor in neighbors:
@@ -87,6 +89,35 @@ def main(data):
                 curr = neighbor
                 break
     print(len(path)//2)
+
+    new_maze = maze.maze
+    path = set(path)
+    for row in range(new_maze.shape[0]):
+        for col in range(new_maze.shape[1]):
+            loc = (row,col)
+            if loc not in path:
+                new_maze[loc] = '0'
+
+    inside = 0
+    for row in range(new_maze.shape[0]):
+        bottoms = 0
+        tops = 0
+        for col in range(new_maze.shape[1]):
+            char = new_maze[row,col]
+            # A bottom leading to another bottom can't enclose because it's a solid bottom side of the loop
+            if char in '|LJ':
+                bottoms += 1
+            # A top leading to another top also can't enclose
+            if char in '|F7':
+                tops += 1
+            if char == '0':
+                # But a paired bottom and top CAN enclose, because they extend the loop further vertically
+                # Obviously a wall also does that which is why it affects both counters, just like a paired bottom/top
+                if (bottoms % 2) and (tops % 2):
+                    new_maze[row,col] = 'I'
+                    inside += 1
+    print(new_maze)
+    print(inside)
 
 def read_input(input_file):
     data = []
