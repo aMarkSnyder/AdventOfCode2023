@@ -98,26 +98,21 @@ def main(data):
             if loc not in path:
                 new_maze[loc] = '0'
 
-    inside = 0
+    area = 0
     for row in range(new_maze.shape[0]):
-        bottoms = 0
-        tops = 0
+        inside = False
         for col in range(new_maze.shape[1]):
             char = new_maze[row,col]
-            # A bottom leading to another bottom can't enclose because it's a solid bottom side of the loop
+            # Any set of pipes that extends the loop vertically acts as an inside/outside divider.
+            # The sets of pipes that do that are |, L7, and FJ.
+            # Here we pick the north facing members. We could equivalently pick the south facing ones, but not both.
             if char in '|LJ':
-                bottoms += 1
-            # A top leading to another top also can't enclose
-            if char in '|F7':
-                tops += 1
-            if char == '0':
-                # But a paired bottom and top CAN enclose, because they extend the loop further vertically
-                # Obviously a wall also does that which is why it affects both counters, just like a paired bottom/top
-                if (bottoms % 2) and (tops % 2):
-                    new_maze[row,col] = 'I'
-                    inside += 1
+                inside = not inside
+            if char == '0' and inside:
+                new_maze[row,col] = 'I'
+                area += 1
     print(new_maze)
-    print(inside)
+    print(area)
 
 def read_input(input_file):
     data = []
