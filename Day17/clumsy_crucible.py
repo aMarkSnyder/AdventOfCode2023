@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 import numpy as np
 from heapq import *
 import itertools
-import pprint
 
 np.set_printoptions(linewidth=200)
 
@@ -44,7 +43,7 @@ class Heatmap:
             case 'w':
                 invalid_dirs.append('e')
         return self.get_neighbors(loc, invalid_dirs)
-    
+
 REMOVED = '<removed-node>'      # placeholder for a removed node
 counter = itertools.count()     # unique sequence count
 
@@ -73,19 +72,21 @@ def pop_node(pq, entry_finder):
 
 def Dijkstra(heatmap: Heatmap, source):
 
-    distances = np.inf*np.ones_like(heatmap.data)
+    distances = np.inf*np.ones((heatmap.height, heatmap.width, 4, 3))
     distances[source] = 0
     previous = np.zeros_like(heatmap.data,dtype=object)
+
+    directions = ('n','s','e', 'w')
 
     queue = []
     entry_finder = {}
     for row in range(heatmap.height):
         for col in range(heatmap.width):
             loc = (row, col)
-            for last_dir in ('e','n','s','w'):
+            for dir_idx, last_dir in enumerate(directions):
                 for dir_streak in (1,2,3):
                     node = (loc, last_dir, dir_streak)
-                    add_node(queue,entry_finder,counter,node, distance=distances[row,col])
+                    add_node(queue,entry_finder,counter,node, distance=distances[row,col,dir_idx,dir_streak-1])
 
     while queue:
         try:
@@ -100,9 +101,10 @@ def Dijkstra(heatmap: Heatmap, source):
             if neighbor_node not in entry_finder:
                 continue
             dist = closest_dist + heatmap.data[neighbor]
-            if dist < distances[neighbor]:
+            known_dist = distances[neighbor[0], neighbor[1], directions.index(dir), new_streak-1]
+            if dist < known_dist:
                 add_node(queue,entry_finder,counter,neighbor_node, dist)
-                distances[neighbor] = dist
+                distances[neighbor[0], neighbor[1], directions.index(dir), new_streak-1] = dist
                 previous[neighbor] = closest_loc
 
     return distances,previous
@@ -115,10 +117,7 @@ def main(data):
     start = (0,0)
     distances, previous = Dijkstra(heatmap, start)
 
-    pp = pprint.PrettyPrinter(width=200)
-    pp.pprint(previous.tolist())
-
-    print(distances)
+    print(np.min(distances[heatmap.height-1, heatmap.width-1]))
 
 def read_input(input_file):
     data = []
