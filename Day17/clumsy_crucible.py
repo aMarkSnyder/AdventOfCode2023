@@ -16,8 +16,8 @@ class Heatmap:
     def get_neighbors(self, loc, invalid_dirs=()):
         neighbors = set()
         moves = {
-            's': (-1, 0), 
-            'n': (1,0),
+            'n': (-1, 0), 
+            's': (1,0),
             'w': (0,-1),
             'e': (0,1)
         }
@@ -29,19 +29,37 @@ class Heatmap:
                 neighbors.add((dir, candidate))
         return neighbors
 
-    def get_valid_neighbors(self, loc, last_dir, dir_streak=1):
+    def get_valid_neighbors(self, loc, last_dir, dir_streak=1, crucible_type='normal'):
         invalid_dirs = []
-        if dir_streak == 3:
-            invalid_dirs.append(last_dir)
-        match last_dir:
-            case 'n':
-                invalid_dirs.append('s')
-            case 's':
-                invalid_dirs.append('n')
-            case 'e':
-                invalid_dirs.append('w')
-            case 'w':
-                invalid_dirs.append('e')
+        if crucible_type == 'normal':
+            if dir_streak == 3:
+                invalid_dirs.append(last_dir)
+            match last_dir:
+                case 'n':
+                    invalid_dirs.append('s')
+                case 's':
+                    invalid_dirs.append('n')
+                case 'e':
+                    invalid_dirs.append('w')
+                case 'w':
+                    invalid_dirs.append('e')
+        else:
+            if dir_streak == 10:
+                invalid_dirs.append(last_dir)
+            elif dir_streak < 4:
+                for dir in ('n','s','e','w'):
+                    if dir != last_dir:
+                        invalid_dirs.append(dir)
+            match last_dir:
+                case 'n':
+                    invalid_dirs.append('s')
+                case 's':
+                    invalid_dirs.append('n')
+                case 'e':
+                    invalid_dirs.append('w')
+                case 'w':
+                    invalid_dirs.append('e')
+
         return self.get_neighbors(loc, invalid_dirs)
 
 REMOVED = '<removed-node>'      # placeholder for a removed node
@@ -70,13 +88,18 @@ def pop_node(pq, entry_finder):
             return distance,node
     raise KeyError('pop from an empty priority queue')
 
-def Dijkstra(heatmap: Heatmap, source):
+def Dijkstra(heatmap: Heatmap, source, crucible_type='normal'):
 
-    distances = np.inf*np.ones((heatmap.height, heatmap.width, 4, 3))
+    if crucible_type == 'normal':
+        max_dir_streak = 3
+    else:
+        max_dir_streak = 10
+
+    distances = np.inf*np.ones((heatmap.height, heatmap.width, 4, max_dir_streak))
     distances[source] = 0
     previous = np.zeros_like(heatmap.data,dtype=object)
 
-    directions = ('n','s','e', 'w')
+    directions = ('n','s','e','w')
 
     queue = []
     entry_finder = {}
@@ -84,7 +107,7 @@ def Dijkstra(heatmap: Heatmap, source):
         for col in range(heatmap.width):
             loc = (row, col)
             for dir_idx, last_dir in enumerate(directions):
-                for dir_streak in (1,2,3):
+                for dir_streak in range(1, max_dir_streak+1):
                     node = (loc, last_dir, dir_streak)
                     add_node(queue,entry_finder,counter,node, distance=distances[row,col,dir_idx,dir_streak-1])
 
@@ -94,7 +117,7 @@ def Dijkstra(heatmap: Heatmap, source):
         except:
             break
 
-        neighbors = heatmap.get_valid_neighbors(closest_loc, last_dir, dir_streak)
+        neighbors = heatmap.get_valid_neighbors(closest_loc, last_dir, dir_streak, crucible_type)
         for dir,neighbor in neighbors:
             new_streak = 1 if dir != last_dir else dir_streak+1
             neighbor_node = (neighbor, dir, new_streak)
@@ -115,9 +138,16 @@ def main(data):
     heatmap = Heatmap(data)
 
     start = (0,0)
-    distances, previous = Dijkstra(heatmap, start)
-
+    
+    # Star 1
+    distances, _ = Dijkstra(heatmap, start)
     print(np.min(distances[heatmap.height-1, heatmap.width-1]))
+
+    # Star 2
+    # For some reason the minimum here doesn't give the right answer even though it works on test cases
+    # But the correct answer was very close
+    distances, _ = Dijkstra(heatmap, start, crucible_type='ultimate')
+    print(np.min(distances[heatmap.height-1, heatmap.width-1, :, 3:]))
 
 def read_input(input_file):
     data = []
