@@ -48,12 +48,12 @@ class Heatmap:
 REMOVED = '<removed-node>'      # placeholder for a removed node
 counter = itertools.count()     # unique sequence count
 
-def add_node(pq, entry_finder, counter, node, distance=0, last_dir='-', dir_streak=-1):
+def add_node(pq, entry_finder, counter, node, distance=0):
     'Add a new node or update an existing node'
     if node in entry_finder:
         remove_node(entry_finder,node)
     count = next(counter)
-    entry = [distance, count, node, last_dir, dir_streak]
+    entry = [distance, count, node]
     entry_finder[node] = entry
     heappush(pq, entry)
 
@@ -65,10 +65,10 @@ def remove_node(entry_finder, node):
 def pop_node(pq, entry_finder):
     'Remove and return the lowest distance node. Raise KeyError if empty.'
     while pq:
-        distance, count, node, last_dir, dir_streak = heappop(pq)
-        if dir_streak is not REMOVED:
+        distance, count, node = heappop(pq)
+        if node is not REMOVED:
             del entry_finder[node]
-            return distance,node,last_dir,dir_streak
+            return distance,node
     raise KeyError('pop from an empty priority queue')
 
 def Dijkstra(heatmap: Heatmap, source):
@@ -79,28 +79,31 @@ def Dijkstra(heatmap: Heatmap, source):
 
     queue = []
     entry_finder = {}
-    for row_idx,row in enumerate(distances):
-        for col_idx,distance in enumerate(row):
-            node = (row_idx,col_idx)
-            add_node(queue,entry_finder,counter,node,distance)
+    for row in range(heatmap.height):
+        for col in range(heatmap.width):
+            loc = (row, col)
+            for last_dir in ('e','n','s','w'):
+                for dir_streak in (1,2,3):
+                    node = (loc, last_dir, dir_streak)
+                    add_node(queue,entry_finder,counter,node, distance=distances[row,col])
 
     while queue:
         try:
-            closest_dist,closest_node,last_dir,dir_streak = pop_node(queue,entry_finder)
+            closest_dist,(closest_loc,last_dir,dir_streak) = pop_node(queue,entry_finder)
         except:
             break
 
-        dir_streak = max(0, dir_streak)
-        neighbors = heatmap.get_valid_neighbors(closest_node, last_dir, dir_streak)
+        neighbors = heatmap.get_valid_neighbors(closest_loc, last_dir, dir_streak)
         for dir,neighbor in neighbors:
-            if neighbor not in entry_finder:
+            new_streak = 1 if dir != last_dir else dir_streak+1
+            neighbor_node = (neighbor, dir, new_streak)
+            if neighbor_node not in entry_finder:
                 continue
             dist = closest_dist + heatmap.data[neighbor]
             if dist < distances[neighbor]:
-                new_streak = 1 if dir != last_dir else dir_streak+1
-                add_node(queue,entry_finder,counter,neighbor,dist,dir,new_streak)
+                add_node(queue,entry_finder,counter,neighbor_node, dist)
                 distances[neighbor] = dist
-                previous[neighbor] = closest_node
+                previous[neighbor] = closest_loc
 
     return distances,previous
 
