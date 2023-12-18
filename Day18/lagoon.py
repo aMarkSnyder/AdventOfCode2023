@@ -3,10 +3,10 @@ from dataclasses import dataclass
 import numpy as np
 
 OFFSETS = {
-    'U': (-1, 0),
+    'R': (0, 1),
     'D': (1, 0),
     'L': (0, -1),
-    'R': (0, 1),
+    'U': (-1, 0),
 }
 
 class PipeMaze():
@@ -144,6 +144,34 @@ def main(data):
     
     print(np.sum(arena != '0'))
 
+    # Star 2
+    new_instructions = []
+    for instruction in instructions:
+        color = instruction.color
+        length = int(color[:-1], 16)
+        direction = list(OFFSETS.keys())[int(color[-1], 16)]
+        new_instructions.append(Instruction(direction, length, color))
+    instructions = new_instructions
+
+    path_length = 0
+    curr_pos = (0,0)
+    vertices = [curr_pos]
+    for instruction in instructions:
+        path_length += instruction.length
+        offset = OFFSETS[instruction.direction]
+        total_offset = (instruction.length*offset[0],  instruction.length*offset[1])
+        curr_pos = (curr_pos[0]+total_offset[0], curr_pos[1]+total_offset[1])
+        vertices.append(curr_pos)
+
+    # Shoelace formula to find area of interior, but why is this just interior and not total?
+    # I think it's because only half the vertices are actually on the outside of the filled area
+    area = 0
+    for idx, vertex in enumerate(vertices[:-1]):
+        area += (vertex[1] + vertices[idx+1][1]) * (vertex[0] - vertices[idx+1][0])
+    area /= 2
+
+    # Pick's theorem, but why does it turn out to be +1 here and not -1 like it should be?
+    print(abs(area) + path_length/2 + 1)
 
 def read_input(input_file):
     data = []
