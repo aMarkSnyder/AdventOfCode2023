@@ -21,6 +21,25 @@ def find_broken_sequences(row):
         sequences.append(sequence)
     return tuple(sequences)
 
+def find_solns(row, sequence_lengths, solns):
+    unsolved = ''.join(row).find('?')
+    if unsolved == -1:
+        if find_broken_sequences(row) == sequence_lengths:
+            solns.append(row)
+        return
+    for poss_seq, true_seq in zip(find_broken_sequences(row)[:-1], sequence_lengths):
+        if poss_seq != true_seq:
+            return
+    if row.count('?') + row.count('#') < sum(sequence_lengths):
+        return
+    if row.count('?') + row.count('.') < len(sequence_lengths) - 1:
+        return
+    fixed_path, broken_path = list(row), list(row)
+    fixed_path[unsolved] = '.'
+    broken_path[unsolved] = '#'
+    find_solns(fixed_path, sequence_lengths, solns)
+    find_solns(broken_path, sequence_lengths, solns)
+
 def count_solns(row, sequence_lengths):
     unsolved = ''.join(row).find('?')
     if unsolved == -1:
@@ -48,6 +67,20 @@ def solve_extend_line(line):
     sequence_lengths = all_ints(line)*5
     return count_solns(spring_row, sequence_lengths)
 
+def solve_extend_line_experiment(line):
+    spring_row = line.split()[0]
+    sequence_lengths = all_ints(line)
+    base_solns = []
+    find_solns(spring_row, sequence_lengths, base_solns)
+
+    if len(base_solns) == 1 and base_solns[0][0] == '#' and base_solns[0][-1] == '#':
+        return 1
+
+    prepend_spring_row = '?' + spring_row
+    append_spring_row = spring_row + '?'
+    additional_solns = max(count_solns(prepend_spring_row,sequence_lengths), count_solns(append_spring_row, sequence_lengths))
+    return len(base_solns) * additional_solns**4
+
 def main(data):
     # Star 1
     arrangements = 0
@@ -67,7 +100,7 @@ def main(data):
     # Star 2
     arrangements = 0
     with concurrent.futures.ProcessPoolExecutor() as executor:
-        future_to_line = {executor.submit(solve_extend_line, line): (idx,line) for (idx,line) in enumerate(data)}
+        future_to_line = {executor.submit(solve_extend_line_experiment, line): (idx,line) for (idx,line) in enumerate(data)}
         for future in concurrent.futures.as_completed(future_to_line):
             idx,line = future_to_line[future]
             try:
