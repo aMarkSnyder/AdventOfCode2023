@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from math import lcm
 
 @dataclass
 class Pulse:
@@ -122,6 +123,33 @@ def main(data):
     
     print(total_pulses['low'] * total_pulses['high'])
 
+    modules = initialize_modules(data)
+
+    # By inspection, &lx is the only source of rx
+    # it has sources &cl, &rp, &lb, &nj
+    # for &lx to send a low, all of its sources need be remembered high at once
+    # which probably means they need to pulse high at the same time because based on
+    # printouts they do not pulse high very often
+    lx_source_pulses = {
+        'cl': 0,
+        'rp': 0,
+        'lb': 0,
+        'nj': 0,
+    }
+    for press in range(1,10**9):
+        current_pulses = [Pulse('button', 'broadcaster', 'low')]
+        while current_pulses:
+            next_pulses = []
+            for pulse in current_pulses:
+                if pulse.source in lx_source_pulses and pulse.value == 'high' and not lx_source_pulses[pulse.source]:
+                    lx_source_pulses[pulse.source] = press
+                pulse_response = modules[pulse.dest].receive(pulse) if pulse.dest in modules else []
+                next_pulses.extend(pulse_response)
+            current_pulses = next_pulses
+        if all(lx_source_pulses.values()):
+            break
+
+    print(lcm(*lx_source_pulses.values()))
 
 def read_input(input_file):
     data = []
