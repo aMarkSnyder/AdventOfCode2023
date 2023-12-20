@@ -75,21 +75,21 @@ def count_accepted(workflows, current_workflow, current_ranges):
     for current_range in current_ranges.values():
         if len(current_range) == 0:
             return 0
-    for step in current_workflow.steps:
+    if current_workflow == 'R':
+        return 0
+    if current_workflow == 'A':
+        total = 1
+        for current_range in current_ranges.values():
+            total *= len(current_range)
+        return total
+    for step in workflows[current_workflow].steps:
         current_range = current_ranges[step.val]
         # The entire current range of the value under test might wind up taking the same path
         if step.test_val not in current_range or step.test_val == current_range[0] or step.test_val == current_range[-1]:
             # Either it all meets the condition and we go there instead or nothing meets it and we continue without changes
             if step.simple_condition(current_ranges[step.val][0]):
-                if step.dest == 'R':
-                    return 0
-                if step.dest == 'A':
-                    total = 1
-                    for current_range in current_ranges.values():
-                        total *= len(current_range)
-                    return total
                 child_current_ranges = copy.copy(current_ranges)
-                accepted.append(count_accepted(workflows, workflows[step.dest], child_current_ranges))
+                accepted.append(count_accepted(workflows, step.dest, child_current_ranges))
                 break
         # Otherwise some of it continues in this workflow and some of it goes to the child workflow
         else:
@@ -102,10 +102,9 @@ def count_accepted(workflows, current_workflow, current_ranges):
                     continuing_range = range(step.test_val, current_range.stop)
             child_current_ranges = copy.copy(current_ranges)
             child_current_ranges[step.val] = child_range
-            accepted.append(count_accepted(workflows, workflows[step.dest], child_current_ranges))
+            accepted.append(count_accepted(workflows, step.dest, child_current_ranges))
             current_ranges[step.val] = continuing_range
-
-
+    return sum(accepted)
 
 def main(data):
     workflows = {}
@@ -133,6 +132,14 @@ def main(data):
     for part in endpoint['A']:
         total_value += part.value()
     print(total_value)
+
+    starting_ranges = {
+        'x': range(1, 4001),
+        'm': range(1, 4001),
+        'a': range(1, 4001),
+        's': range(1, 4001),
+    }
+    print(count_accepted(workflows, 'in', starting_ranges))
 
 def read_input(input_file):
     data = []
