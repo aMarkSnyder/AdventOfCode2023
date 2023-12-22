@@ -65,15 +65,16 @@ def drop_block(grid, block):
     return new_block, supported_by
 
 def main(data):
-    # Note: input data keeps 0 <= x,y < 10, 1 <= z < 300
     blocks = []
     id_gen = itertools.count(1)
     entry_finder = {}
     for line in data:
         x1, y1, z1, x2, y2, z2 = all_ints(line)
         block = Block(next(id_gen), range(x1,x2+1), range(y1,y2+1), range(z1,z2+1))
+        # Need a priority queue (or other iterable sorted by z) so that lower blocks fall first
         add_node(blocks, entry_finder, heap_counter, block, z1)
 
+    # Note: input data keeps 0 <= x,y < 10, 1 <= z < 300
     grid = -1 * np.ones((10,10,300))
     grid[:,:,0] = 0
     supported_by = {}
@@ -107,12 +108,9 @@ def main(data):
     total_fallen = 0
     for block_id in required:
         fallen = {block_id}
-        fall_queue = []
-        entry_finder = {}
-        for supported in supports[block_id]:
-            add_node(fall_queue, entry_finder, heap_counter, supported, new_blocks[supported].zrange.start)
+        fall_queue = list(supports[block_id])
         while fall_queue:
-            _, poss = pop_node(fall_queue, entry_finder)
+            poss = fall_queue.pop(0)
             no_support = True
             for supporter in supported_by[poss]:
                 if supporter not in fallen:
@@ -120,12 +118,9 @@ def main(data):
                     break
             if no_support:
                 fallen.add(poss)
-                for supported in supports[poss]:
-                    add_node(fall_queue, entry_finder, heap_counter, supported, new_blocks[supported].zrange.start)
-        #print(f'{block_id} caused {fallen} to fall')
+                fall_queue.extend(supports[poss])
         total_fallen += len(fallen) - 1
     print(total_fallen)
-
 
 def read_input(input_file):
     data = []
