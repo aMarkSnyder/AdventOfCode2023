@@ -34,33 +34,13 @@ class Maze:
             if self.is_valid(neighbor) and neighbor not in seen:
                 neighbors.append(neighbor)
         return neighbors
-
-def main(data):
-    array = [[char for char in line] for line in data]
-    data = np.array(array)
-
-    maze = Maze(data)
-    start = (0, 1)
-    goal = (maze.height-1, maze.width-2)
-    seen = set()
     
-    curr_max = 0
-    queue = [(start, 0, seen)]
-    while queue:
-        curr_loc, curr_dist, curr_seen = queue.pop(0)
-        neighbors = maze.neighbors(curr_loc, curr_seen)
-        for neighbor in neighbors:
-            if neighbor == goal:
-                if curr_dist+1 > curr_max:
-                    curr_max = curr_dist+1
-            else:
-                next_seen = set(curr_seen)
-                next_seen.add(curr_loc)
-                queue.append((neighbor, curr_dist+1, next_seen))
-    print(curr_max)
+def build_graph(maze, start, goal, part1=True):
+    if part1:
+        G = nx.DiGraph()
+    else:
+        G = nx.Graph()
 
-    data[data != '#'] = '.'
-    G = nx.Graph()
     for node in (start, goal):
         G.add_node(node)
     for row in range(maze.height):
@@ -84,6 +64,21 @@ def main(data):
                     next_seen.add(curr_loc)
                     queue.append((neighbor, curr_dist+1, next_seen))
 
+    return G
+
+def main(data):
+    array = [[char for char in line] for line in data]
+    data = np.array(array)
+
+    maze = Maze(data)
+    start = (0, 1)
+    goal = (maze.height-1, maze.width-2)
+
+    G = build_graph(maze, start, goal)
+    print(max((nx.path_weight(G, path, 'weight') for path in nx.all_simple_paths(G, start, goal))))
+
+    maze.data[maze.data != '#'] = '.'
+    G = build_graph(maze, start, goal, part1=False)
     print(max((nx.path_weight(G, path, 'weight') for path in nx.all_simple_paths(G, start, goal))))
 
 def read_input(input_file):
