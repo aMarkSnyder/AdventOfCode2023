@@ -1,24 +1,6 @@
 from argparse import ArgumentParser
 import numpy as np
-from collections import defaultdict
-from copy import copy
-import itertools
-from heapq import *
-
-heap_counter = itertools.count()     # unique sequence count
-
-def add_node(pq, node, distance=0):
-    'Add a new node'
-    count = next(heap_counter)
-    entry = [distance, count, node]
-    heappush(pq, entry)
-
-def pop_node(pq):
-    'Remove and return the lowest distance node. Raise KeyError if empty.'
-    while pq:
-        distance, _, node = heappop(pq)
-        return distance,node
-    raise KeyError('pop from an empty priority queue')
+import networkx as nx
 
 class Maze:
     def __init__(self, data) -> None:
@@ -78,14 +60,15 @@ def main(data):
     print(curr_max)
 
     data[data != '#'] = '.'
-    nodes = set([start, goal])
+    G = nx.Graph()
+    for node in (start, goal):
+        G.add_node(node)
     for row in range(maze.height):
         for col in range(maze.width):
             if len(maze.neighbors((row,col), set())) in (3,4):
-                nodes.add((row,col))
+                G.add_node((row,col))
 
-    edges = defaultdict(dict)
-    for node in nodes:
+    for node in G.nodes:
         queue = []
         neighbors = maze.neighbors(node, set())
         for neighbor in neighbors:
@@ -94,34 +77,14 @@ def main(data):
             curr_loc, curr_dist, curr_seen = queue.pop(0)
             neighbors = maze.neighbors(curr_loc, curr_seen)
             for neighbor in neighbors:
-                if neighbor in nodes:
-                    edges[node][neighbor] = curr_dist + 1
+                if neighbor in G.nodes:
+                    G.add_edge(node, neighbor, weight=curr_dist+1)
                 else:
                     next_seen = set(curr_seen)
                     next_seen.add(curr_loc)
                     queue.append((neighbor, curr_dist+1, next_seen))
 
-    curr_max = 0
-    queue = []
-    nodes.discard(start)
-    for node, dist in edges[start].items():
-        new_nodes = copy(nodes)
-        add_node(queue, (node, dist, new_nodes), -dist)
-    while queue:
-        _, (curr_loc, curr_dist, curr_nodes) = pop_node(queue)
-        # We can never return to the node we're using
-        curr_nodes.discard(curr_loc)
-        neighbors = edges[curr_loc]
-        if goal in neighbors:
-            if curr_dist + neighbors[goal] > curr_max:
-                print(f'found new max distance {curr_dist + neighbors[goal]}')
-                curr_max = curr_dist + neighbors[goal]
-        else:
-            for neighbor,dist in neighbors.items():
-                if neighbor in curr_nodes:
-                    new_nodes = copy(curr_nodes)
-                    add_node(queue, (neighbor, curr_dist+dist, new_nodes), -(curr_dist+dist))
-    print(curr_max)
+    print(max((nx.path_weight(G, path, 'weight') for path in nx.all_simple_paths(G, start, goal))))
 
 def read_input(input_file):
     data = []
