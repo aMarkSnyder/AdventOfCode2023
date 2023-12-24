@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
 from sympy import symbols, solve
+import numpy as np
 import re
 
 def all_ints(s):
@@ -33,16 +34,23 @@ def find_intersection(hail1: Hailstone, hail2: Hailstone):
     # y = py + vy * t
     # t = (x - px) / vx
     # y = py + vy * (x - px) / vx
+    # y = py + vy/vx * x - vy/vx * px
+    # -vy/vx * x + y = py - vy/vx * px
 
-    x,y = symbols('x y')
-    soln = solve([
-        -y + hail1.py + hail1.vy * (x - hail1.px) / hail1.vx,
-        -y + hail2.py + hail2.vy * (x - hail2.px) / hail2.vx,
-    ], [x,y], dict=True)
-    if not soln:
+    a = np.array(
+        [[-hail1.vy/hail1.vx, 1],
+         [-hail2.vy/hail2.vx, 1]]
+    )
+    b = np.array([
+        hail1.py - hail1.px * hail1.vy / hail1.vx,
+        hail2.py - hail2.px * hail2.vy / hail2.vx
+    ])
+    try:
+        x,y = np.linalg.solve(a, b)
+    except:
+        # Parallel
         return None
 
-    x,y = soln[0][x], soln[0][y]
     t1 = (x - hail1.px) / hail1.vx
     z1 = hail1.pz + t1 * hail1.vz
     t2 = (x - hail2.px) / hail2.vx
