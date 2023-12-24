@@ -23,36 +23,26 @@ class Hailstone:
     
 @dataclass(frozen=True)
 class Point:
-    x: int
-    y: int
-    z: int
-    t: int
+    x: float
+    y: float
+    z: float
+    t: float
 
 def find_intersection(hail1: Hailstone, hail2: Hailstone):
     # x = px + vx * t
     # y = py + vy * t
-    # z = pz + vz * t
-    # t = (x - px) / vx = (y - py) / vy = (z - pz) / vz
+    # t = (x - px) / vx
     # y = py + vy * (x - px) / vx
-    # y = py + vy/vx * x - vy/vx * px
-    # -vy/vx * x + y = py - vy/vx * px
-    # A1*x + B1*y = C1
-    # A2*x + B2*y = C2
-    # x = (C1*B2 - C2*B1) / (A1*B2 - A2*B1)
-    # y = (A1*C2 - A2*C1) / (A1*B2 - A2*B1)
 
-    a1 = -hail1.vy/hail1.vx
-    a2 = -hail2.vy/hail2.vx
-    b1, b2 = 1, 1
-    c1 = hail1.py - hail1.px * hail1.vy / hail1.vx
-    c2 = hail2.py - hail2.px * hail2.vy / hail2.vx
-
-    divisor = a1*b2 - a2*b1
-    if not divisor:
+    x,y = symbols('x y')
+    soln = solve([
+        -y + hail1.py + hail1.vy * (x - hail1.px) / hail1.vx,
+        -y + hail2.py + hail2.vy * (x - hail2.px) / hail2.vx,
+    ], [x,y], dict=True)
+    if not soln:
         return None
-    
-    x = (c1*b2 - c2*b1) / divisor
-    y = (a1*c2 - a2*c1) / divisor
+
+    x,y = soln[0][x], soln[0][y]
     t1 = (x - hail1.px) / hail1.vx
     z1 = hail1.pz + t1 * hail1.vz
     t2 = (x - hail2.px) / hail2.vx
@@ -66,8 +56,8 @@ def main(data):
         hailstones.append(Hailstone(*all_ints(line)))
 
     # Star 1
-    test_min, test_max = 7, 27
-    #test_min, test_max = 200000000000000, 400000000000000
+    #test_min, test_max = 7, 27
+    test_min, test_max = 200000000000000, 400000000000000
     
     intersections = 0
     for idx, hailstone1 in enumerate(hailstones):
