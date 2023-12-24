@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from sympy import symbols, solve
 import re
 
 def all_ints(s):
@@ -30,7 +31,8 @@ class Point:
 def find_intersection(hail1: Hailstone, hail2: Hailstone):
     # x = px + vx * t
     # y = py + vy * t
-    # t = (x - px) / vx
+    # z = pz + vz * t
+    # t = (x - px) / vx = (y - py) / vy = (z - pz) / vz
     # y = py + vy * (x - px) / vx
     # y = py + vy/vx * x - vy/vx * px
     # -vy/vx * x + y = py - vy/vx * px
@@ -58,20 +60,18 @@ def find_intersection(hail1: Hailstone, hail2: Hailstone):
 
     return (Point(x,y,z1,t1), Point(x,y,z2,t2))
 
-
-
 def main(data):
     hailstones = []
     for line in data:
         hailstones.append(Hailstone(*all_ints(line)))
 
     # Star 1
-    #test_min, test_max = 7, 27
-    test_min, test_max = 200000000000000, 400000000000000
+    test_min, test_max = 7, 27
+    #test_min, test_max = 200000000000000, 400000000000000
     
     intersections = 0
     for idx, hailstone1 in enumerate(hailstones):
-        for hailstone2 in hailstones[idx:]:
+        for hailstone2 in hailstones[idx+1:]:
             locs = find_intersection(hailstone1, hailstone2)
             #print(locs)
             if not locs:
@@ -82,9 +82,26 @@ def main(data):
                     valid = False
             if valid:
                 intersections += 1
-
     print(intersections)
-        
+
+    # Star 2
+    # variables: px, py, pz, vx, vy, vz, t1, t2, ..., tn
+    # px + vx*t1 = px1 + vx1*t1
+    # each of these for 3 points gives 9 equations, 9 unknowns
+    px, py, pz, vx, vy, vz, t1, t2, t3 = symbols('px py pz vx vy vz t1 t2 t3')
+    soln = solve([
+        px + vx*t1 - hailstones[0].px - hailstones[0].vx*t1,
+        py + vy*t1 - hailstones[0].py - hailstones[0].vy*t1,
+        pz + vz*t1 - hailstones[0].pz - hailstones[0].vz*t1,
+        px + vx*t2 - hailstones[1].px - hailstones[1].vx*t2,
+        py + vy*t2 - hailstones[1].py - hailstones[1].vy*t2,
+        pz + vz*t2 - hailstones[1].pz - hailstones[1].vz*t2,
+        px + vx*t3 - hailstones[2].px - hailstones[2].vx*t3,
+        py + vy*t3 - hailstones[2].py - hailstones[2].vy*t3,
+        pz + vz*t3 - hailstones[2].pz - hailstones[2].vz*t3,
+    ], [px,py,pz,vx,vy,vz,t1,t2,t3], dict=True)
+    soln = soln[0]
+    print(sum((soln[px], soln[py], soln[pz])))
 
 def read_input(input_file):
     data = []
