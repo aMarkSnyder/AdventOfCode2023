@@ -10,11 +10,9 @@ def main(data):
         for dest in dests:
             G.add_edge(source, dest)
 
-    #nx.draw(G, with_labels=True)
-    #plt.show()
-
-    # By inspection, the links are xxq-hqq, kgl-xzz, qfb-vkd
-    G.remove_edges_from((('xxq', 'hqq'), ('kgl', 'xzz'), ('qfb', 'vkd')))
+    # Finds the lowest weight (smallest, since this is unweighted) set of edges that can be
+    # removed to split the graph in two. We know there will be three of them in this case.
+    G.remove_edges_from(nx.minimum_edge_cut(G))
     g1, g2 = nx.connected_components(G)
     print(len(g1) * len(g2))
 
